@@ -6,6 +6,8 @@
   "author": "Huy Phung",
   "license": "MIT",
   "dependencies": {
+    "elm": "^0.19.1-5",
+    "elm-hot": "^1.1.6",
     "parcel-bundler": "^1.12.5"
   },
   "scripts": {
@@ -13,7 +15,6 @@
     "build": "npx parcel build src/index.html"
   },
   "devDependencies": {
-    "elm-hot": "^1.1.6",
     "node-elm-compiler": "^5.0.6"
   }
 }
