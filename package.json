@@ -8,13 +8,13 @@
   "dependencies": {
     "elm": "^0.19.1-5",
     "elm-hot": "^1.1.6",
-    "parcel-bundler": "^1.12.5"
+    "parcel": "^2.4.1"
   },
   "scripts": {
     "start": "npx parcel src/index.html",
     "build": "npx parcel build src/index.html"
   },
   "devDependencies": {
-    "node-elm-compiler": "^5.0.6"
+    "@parcel/transformer-elm": "2.4.1"
   }
 }
