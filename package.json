@@ -1,0 +1,19 @@
+{
+  "name": "midoto_v2",
+  "version": "1.0.0",
+  "description": "Task manager focus on keyboard oriented",
+  "main": "index.js",
+  "author": "Huy Phung",
+  "license": "MIT",
+  "dependencies": {
+    "parcel-bundler": "^1.12.5"
+  },
+  "scripts": {
+    "start": "npx parcel src/index.html",
+    "build": "npx parcel build src/index.html"
+  },
+  "devDependencies": {
+    "elm-hot": "^1.1.6",
+    "node-elm-compiler": "^5.0.6"
+  }
+}
