@@ -1,4 +1,5 @@
 node_modules
 elm-stuff
-.cache
+.parcel-cache
 dist
+yarn-error.log

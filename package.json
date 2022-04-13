@@ -1,8 +1,8 @@
 {
-  "name": "midoto_v2",
+  "name": "midoto",
   "version": "1.0.0",
   "description": "Task manager focus on keyboard oriented",
-  "main": "index.js",
+  "source": "src/index.html",
   "author": "Huy Phung",
   "license": "MIT",
   "dependencies": {

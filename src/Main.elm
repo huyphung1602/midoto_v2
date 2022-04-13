@@ -6,11 +6,15 @@ module Main exposing (main)
 import Browser
 import Browser.Events exposing (onKeyUp)
 import Browser.Dom as Dom
-import Html exposing (..)
+import Element exposing (..)
+import Element.Input as Input
+import Element.Border as Border
+import Element.Font as Font
+import Html exposing (Html)
 import Html.Events exposing (onInput, onSubmit)
-import Html.Attributes as HtmlAttr
+import Html.Attributes as HtmlAtr
 import Svg exposing (svg, rect, text_)
-import Svg.Attributes exposing (..)
+import Svg.Attributes as SvgAtr
 import Json.Decode as JsonDecode
 import Json.Encode as JsonEncode
 import Task
@@ -406,36 +410,96 @@ timerSub =
 -- START:view
 view : Model -> Html Msg
 view model =
-    div [ HtmlAttr.style "width" "100vw", HtmlAttr.style "height" "100vh", HtmlAttr.style "overflow" "hidden" ]
-        [
-            Html.form 
-                ([ onSubmit (parseMsg (tokenize model.inputText) model.todos)
-                , HtmlAttr.style "justify-content" "center"
-                , HtmlAttr.style "align-items" "center"
-                , HtmlAttr.style "position" "absolute"
-                , HtmlAttr.style "height" "100vh"
-                , HtmlAttr.style "width" "100vw"
-                , HtmlAttr.style "background" "rgba(0, 0, 0, 0.5)"
-                ] ++ displayForm model.isShowForm)
-                [ input
-                    ([ HtmlAttr.placeholder "What do you want to do?"
-                    , HtmlAttr.id "input-command-box"
-                    , HtmlAttr.value model.inputText
-                    , onInput ChangeInput
-                    ] ++ styleInputBox
-                    )
-                    []
-                ]
-            , div
-                styleApplicationBody
-                [ div
-                    [ HtmlAttr.style "height" "90%"
-                    , HtmlAttr.style "padding" "10px 0 10px 20px"]
-                    [ svgLogo ]
-                , div styleOfLeftPanel <| (h3 [HtmlAttr.style "margin-left" "20px"] [ text "On Going Tasks" ])::(List.map viewTodo <| onGoingTodos model.todos)
-                , div styleOfRightPanel <| viewRightPanel model
-                ]
+    Html.div [ HtmlAtr.style "width" "100vw", HtmlAtr.style "height" "100vh", HtmlAtr.style "overflow" "hidden" ]
+        [ commandBox model
+        , Html.div
+            styleApplicationBody
+            [ Html.div
+                [ HtmlAtr.style "height" "90%"
+                , HtmlAtr.style "padding" "10px 0 10px 20px"]
+                [ svgLogo ]
+            , Html.div styleOfLeftPanel <| (Html.h3 [HtmlAtr.style "margin-left" "20px"] [ Html.text "On Going Tasks" ])::(List.map viewTodo <| onGoingTodos model.todos)
+            , Html.div styleOfRightPanel <| viewRightPanel model
+            ]
         ]
+
+
+-- START BLOCK:commandBox
+onEnter : msg -> Element.Attribute msg
+onEnter msg =
+    Element.htmlAttribute
+        (Html.Events.on "keyup"
+            (JsonDecode.field "key" JsonDecode.string
+                |> JsonDecode.andThen
+                    (\key ->
+                        if key == "Enter" then
+                            JsonDecode.succeed msg
+                        else
+                            JsonDecode.fail "Not the enter key"
+                    )
+            )
+        )
+
+displayCommandBox : Bool -> List (Html.Attribute msg)
+displayCommandBox isShowForm =
+    if isShowForm then
+        [ HtmlAtr.style "display" "flex" ]
+    else
+        [ HtmlAtr.style "display" "none" ]
+
+commandBox : Model -> Html Msg
+commandBox model =
+    Html.div
+        ([ HtmlAtr.style "justify-content" "center"
+        , HtmlAtr.style "align-items" "center"
+        , HtmlAtr.style "position" "absolute"
+        , HtmlAtr.style "height" "100vh"
+        , HtmlAtr.style "width" "100vw"
+        , HtmlAtr.style "background" "rgba(0, 0, 0, 0.5)"
+        ] ++ displayCommandBox model.isShowForm)
+        [ Element.layout
+            []
+            ( Input.text
+                [ onEnter <| parseMsg (tokenize model.inputText) model.todos
+                , centerX
+                , centerY
+                , width (px 800)
+                , spacing 16
+                , Border.width 2
+                , Border.rounded 4
+                , Border.color <| rgb255 0xd1 0xd1 0xd1
+                , focused
+                    [ Border.shadow
+                        { offset = ( 0, 3 ), size = 10, blur = -1, color = rgb255 0xd1 0xd1 0xd1 }
+                    , Border.color <| rgb255 0x0d 0xa2 0xe7
+                    ]
+                , Element.htmlAttribute (HtmlAtr.id "input-command-box")
+                ]
+                { onChange = ChangeInput
+                , text = model.inputText
+                , placeholder =
+                    Just
+                        (Input.placeholder []
+                            (text "Type your task name or command")
+                        )
+                , label = Input.labelHidden "Command Box"
+                }
+            )
+        ]
+
+styleInputBox : List (Html.Attribute msg)
+styleInputBox =
+    [ HtmlAtr.style "font-size" "16px"
+    , HtmlAtr.style "letter-spacing" "0.8px"
+    , HtmlAtr.style "height" "45px"
+    , HtmlAtr.style "width" "800px"
+    , HtmlAtr.style "padding" "0px 10px"
+    , HtmlAtr.style "border" "1px solid #666"
+    , HtmlAtr.style "border-radius" "4px"
+    , HtmlAtr.style "box-shadow" "0 0 50px rgba(0, 0, 0, 0.25)"
+    ]
+-- END BLOCK:commandBox
+
 
 viewRightPanel : Model -> List (Html Msg)
 viewRightPanel model =
@@ -447,104 +511,104 @@ viewRightPanel model =
 
 viewCompletedTodos : List Todo -> List (Html Msg)
 viewCompletedTodos todos =
-    (h3 [HtmlAttr.style "margin-left" "20px"] [ text "Completed Tasks" ])::(List.map viewTodo <| completedTodos todos)
+    (Html.h3 [HtmlAtr.style "margin-left" "20px"] [ Html.text "Completed Tasks" ])::(List.map viewTodo <| completedTodos todos)
 
 viewCommandList : List (Html Msg) -> List (Html Msg)
 viewCommandList cmdElems =
-    (h3 [HtmlAttr.style "margin-left" "20px"] [ text "List of Commands" ])::(List.map viewCommand <| cmdElems)
+    (Html.h3 [HtmlAtr.style "margin-left" "20px"] [ Html.text "List of Commands" ])::(List.map viewCommand <| cmdElems)
 
 viewCommand : Html Msg -> Html Msg
 viewCommand cmdElement =
-    p [HtmlAttr.style "line-height" "32px"]
-        [ div
-            [ HtmlAttr.style "margin-left" "16px"
-            , HtmlAttr.style "margin-right" "16px"
+    Html.p [HtmlAtr.style "line-height" "32px"]
+        [ Html.div
+            [ HtmlAtr.style "margin-left" "16px"
+            , HtmlAtr.style "margin-right" "16px"
             ]
             [ cmdElement ]
         ]
 
 commandElements : List (Html Msg)
 commandElements =
-    [ span []
-        [ strong [] [ text "Press i" ]
-        , text " to show the command palette."
+    [ Html.span []
+        [ Html.strong [] [ Html.text "Press i" ]
+        , Html.text " to show the command palette."
         ]
-    , span []
-        [ strong [] [ text "/add or /a" ]
-        , text " [your task name] or"
-        , strong [] [ text " type your task name" ]
-        , text " to add a new task."
+    , Html.span []
+        [ Html.strong [] [ Html.text "/add or /a" ]
+        , Html.text " [your task name] or"
+        , Html.strong [] [ Html.text " type your task name" ]
+        , Html.text " to add a new task."
         ]
-    , span []
-        [ strong [] [ text "/edit or /e" ]
-        , text " [task index] [new task name] to edit a task's name."
+    , Html.span []
+        [ Html.strong [] [ Html.text "/edit or /e" ]
+        , Html.text " [task index] [new task name] to edit a task's name."
         ]
-    , span []
-        [ strong [] [ text "/wk" ]
-        , text " [task index] to select working task."
+    , Html.span []
+        [ Html.strong [] [ Html.text "/wk" ]
+        , Html.text " [task index] to select working task."
         ]
-    , span []
-        [ strong [] [ text "/start" ]
-        , text " to start or continue counting working time on a task. "
-        , strong [] [ text "/start" ]
-        , text " [task index] to select a working task and start it at the same time."
+    , Html.span []
+        [ Html.strong [] [ Html.text "/start" ]
+        , Html.text " to start or continue counting working time on a task. "
+        , Html.strong [] [ Html.text "/start" ]
+        , Html.text " [task index] to select a working task and start it at the same time."
         ]
-    , span []
-        [ strong [] [ text "/stop" ]
-        , text " to stop working time on a task."
+    , Html.span []
+        [ Html.strong [] [ Html.text "/stop" ]
+        , Html.text " to stop working time on a task."
         ]
-    , span []
-        [ strong [] [ text "/check or /c" ]
-        , text " [task index] to complete a task."
+    , Html.span []
+        [ Html.strong [] [ Html.text "/check or /c" ]
+        , Html.text " [task index] to complete a task."
         ]
-    , span []
-        [ strong [] [ text "/uncheck or /u" ]
-        , text " [task index] to complete a task."
+    , Html.span []
+        [ Html.strong [] [ Html.text "/uncheck or /u" ]
+        , Html.text " [task index] to complete a task."
         ]
-    , span []
-        [ strong [] [ text "/delete or /d" ]
-        , text " [task index] to delete a task."
+    , Html.span []
+        [ Html.strong [] [ Html.text "/delete or /d" ]
+        , Html.text " [task index] to delete a task."
         ]
-    , span []
-        [ strong [] [ text "/0" ]
-        , text " to show the list of commands."
+    , Html.span []
+        [ Html.strong [] [ Html.text "/0" ]
+        , Html.text " to show the list of commands."
         ]
-    , span []
-        [ strong [] [ text "/1" ]
-        , text " to show the completed tasks."
+    , Html.span []
+        [ Html.strong [] [ Html.text "/1" ]
+        , Html.text " to show the completed tasks."
         ]
     ]
 
 viewTodo : (Int, Todo) -> Html Msg
 viewTodo (uiIndex, todo) =
-    p []
-        [ div
-            [ HtmlAttr.style "text-decoration"
+    Html.p []
+        [ Html.div
+            [ HtmlAtr.style "text-decoration"
                 (if todo.status == Completed then
                     "line-through"
                 else
                     "none"
                 )
-            , HtmlAttr.style "font-weight"
+            , HtmlAtr.style "font-weight"
                 (if todo.status == Active then
                     "600"
                 else
                     "300"
                 )
-            , HtmlAttr.style "display" "flex"
-            , HtmlAttr.style "justify-content" "space-between"
-            , HtmlAttr.style "margin-left" "16px"
-            , HtmlAttr.style "margin-right" "16px"
+            , HtmlAtr.style "display" "flex"
+            , HtmlAtr.style "justify-content" "space-between"
+            , HtmlAtr.style "margin-left" "16px"
+            , HtmlAtr.style "margin-right" "16px"
             ]
-            [ span [] [ text <| (String.fromInt uiIndex) ++ ". " ++ todo.name ]
-            , span [ HtmlAttr.style "display"
+            [ Html.span [] [ Html.text <| (String.fromInt uiIndex) ++ ". " ++ todo.name ]
+            , Html.span [ HtmlAtr.style "display"
                     ( if todo.status == Active || todo.status == Completed then
                         "flex"
                     else
                         "none"
                     )
                 ]
-                [ text <| parseWorkingTimeToString todo.workedTime ]
+                [ Html.text <| parseWorkingTimeToString todo.workedTime ]
             ]
         ]
 
@@ -684,87 +748,69 @@ parseMsg list todos =
                     AddTodo <| String.join " " list
 
 
-displayForm : Bool -> List (Html.Attribute msg)
-displayForm isShowForm =
-    if isShowForm then
-        [ HtmlAttr.style "display" "flex" ]
-    else
-        [ HtmlAttr.style "display" "none"]
-
 styleApplicationBody : List (Html.Attribute msg)
 styleApplicationBody =
-    [ HtmlAttr.style "display" "flex"
-    , HtmlAttr.style "flex-direction" "row"
-    , HtmlAttr.style "align-items" "center"
-    , HtmlAttr.style "width" "100%"
-    , HtmlAttr.style "height" "100%"
-    , HtmlAttr.style "overflow" "hidden"
+    [ HtmlAtr.style "display" "flex"
+    , HtmlAtr.style "flex-direction" "row"
+    , HtmlAtr.style "align-items" "center"
+    , HtmlAtr.style "width" "100%"
+    , HtmlAtr.style "height" "100%"
+    , HtmlAtr.style "overflow" "hidden"
     ]
 
 styleOfLeftPanel : List (Html.Attribute msg)
 styleOfLeftPanel =
-    [ HtmlAttr.style "padding" "10px"
-    , HtmlAttr.style "margin-left" "auto"
-    , HtmlAttr.style "border" "1px solid #d1d1d1"
-    , HtmlAttr.style "border-radius" "4px"
-    , HtmlAttr.style "width" "40%"
-    , HtmlAttr.style "height" "90%"
-    , HtmlAttr.style "font-size" "16px"
-    , HtmlAttr.style "overflow" "hidden"
-    , HtmlAttr.style "box-shadow" "0 3px 10px rgb(0 0 0 / 0.2)"
+    [ HtmlAtr.style "padding" "10px"
+    , HtmlAtr.style "margin-left" "auto"
+    , HtmlAtr.style "border" "1px solid #d1d1d1"
+    , HtmlAtr.style "border-radius" "4px"
+    , HtmlAtr.style "width" "40%"
+    , HtmlAtr.style "height" "90%"
+    , HtmlAtr.style "font-size" "16px"
+    , HtmlAtr.style "overflow" "hidden"
+    , HtmlAtr.style "box-shadow" "0 3px 10px rgb(0 0 0 / 0.2)"
     ]
 
 styleOfRightPanel : List (Html.Attribute msg)
 styleOfRightPanel =
-    [ HtmlAttr.style "padding" "10px"
-    , HtmlAttr.style "margin-left" "auto"
-    , HtmlAttr.style "margin-right" "auto"
-    , HtmlAttr.style "border" "1px solid #d1d1d1"
-    , HtmlAttr.style "border-radius" "4px"
-    , HtmlAttr.style "width" "40%"
-    , HtmlAttr.style "height" "90%"
-    , HtmlAttr.style "font-size" "16px"
-    , HtmlAttr.style "overflow" "hidden"
-    , HtmlAttr.style "box-shadow" "0 3px 10px rgb(0 0 0 / 0.2)"
+    [ HtmlAtr.style "padding" "10px"
+    , HtmlAtr.style "margin-left" "auto"
+    , HtmlAtr.style "margin-right" "auto"
+    , HtmlAtr.style "border" "1px solid #d1d1d1"
+    , HtmlAtr.style "border-radius" "4px"
+    , HtmlAtr.style "width" "40%"
+    , HtmlAtr.style "height" "90%"
+    , HtmlAtr.style "font-size" "16px"
+    , HtmlAtr.style "overflow" "hidden"
+    , HtmlAtr.style "box-shadow" "0 3px 10px rgb(0 0 0 / 0.2)"
     ]
 
-styleInputBox : List (Html.Attribute msg)
-styleInputBox =
-    [ HtmlAttr.style "font-size" "16px"
-    , HtmlAttr.style "letter-spacing" "0.8px"
-    , HtmlAttr.style "height" "45px"
-    , HtmlAttr.style "width" "800px"
-    , HtmlAttr.style "padding" "0px 10px"
-    , HtmlAttr.style "border" "1px solid #666"
-    , HtmlAttr.style "border-radius" "4px"
-    , HtmlAttr.style "box-shadow" "0 0 50px rgba(0, 0, 0, 0.25)"
-    ]
 -- END:view
 
 -- START:logo
 svgLogo : Html msg
 svgLogo =
     svg
-        [ viewBox "10 10 40 40"
-        , width "50"
-        , height "50"
-        , HtmlAttr.style "margin-top" "-10px"
+        [ SvgAtr.viewBox "10 10 40 40"
+        , SvgAtr.width "50"
+        , SvgAtr.height "50"
+        , HtmlAtr.style "margin-top" "-10px"
         ]
         [ rect
-            [ x "10"
-            , y "10"
-            , width "40"
-            , height "40"
+            [ SvgAtr.x "10"
+            , SvgAtr.y "10"
+            , SvgAtr.width "40"
+            , SvgAtr.height "40"
             ]
             []
         , text_
-            [ x "50%"
-            , y "50%"
-            , dominantBaseline "hanging"
-            , fill "white"
-            , fontFamily "Courgette, cursive"
-            , fontWeight "600"
-            , fontSize "14px"
+            [ SvgAtr.x "50%"
+            , SvgAtr.y "50%"
+            , SvgAtr.dominantBaseline "hanging"
+            , SvgAtr.fill "white"
+            , SvgAtr.fontFamily "Courgette, cursive"
+            , SvgAtr.fontWeight "600"
+            , SvgAtr.fontSize "14px"
             ]
             [
                 Svg.text "Mi"
