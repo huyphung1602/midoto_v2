@@ -8,6 +8,7 @@
   "dependencies": {
     "elm": "^0.19.1-5",
     "elm-hot": "^1.1.6",
+    "howler": "^2.2.3",
     "parcel": "^2.4.1"
   },
   "scripts": {

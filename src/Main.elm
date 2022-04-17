@@ -9,9 +9,8 @@ import Browser.Dom as Dom
 import Element exposing (..)
 import Element.Input as Input
 import Element.Border as Border
-import Element.Font as Font
 import Html exposing (Html)
-import Html.Events exposing (onInput, onSubmit)
+import Html.Events
 import Html.Attributes as HtmlAtr
 import Svg exposing (svg, rect, text_)
 import Svg.Attributes as SvgAtr
@@ -20,6 +19,7 @@ import Json.Encode as JsonEncode
 import Task
 import Time
 import Ports
+import Process
 -- END:import
 
 -- START:main
@@ -40,6 +40,9 @@ saveTodos todos =
         |> JsonEncode.encode 0
         |> Ports.storeTodos
 
+ringTheBell : Bool -> Cmd Msg
+ringTheBell isEnableBell =
+    Ports.ringTheBell isEnableBell
 
 todoEncoder : Todo -> JsonEncode.Value
 todoEncoder todo =
@@ -102,6 +105,10 @@ type TodoStatus
     | Incomplete
     | Completed
 
+type BellStatus
+    = InProgress
+    | Expired
+
 type RightPanel
     = CommandList
     | CompletedTodos
@@ -123,6 +130,8 @@ type alias Model =
     , startTime : Time.Posix
     , zone : Time.Zone
     , rightPanel : RightPanel
+    , enableBell : Bool
+    , bellStatus : BellStatus
     }
 
 defaultInputText : String
@@ -146,6 +155,8 @@ init flags =
       , startTime = Time.millisToPosix 0
       , zone = Time.utc
       , rightPanel = CommandList
+      , enableBell = True
+      , bellStatus = Expired
       }
     , Cmd.none
     )
@@ -154,6 +165,7 @@ init flags =
 -- START:update
 type Msg
     = NoOp
+    | RingBell
     | PressCharacter Char
     | PressControl String
     | ChangeInput String
@@ -174,6 +186,12 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
+        RingBell ->
+            case model.bellStatus of
+                InProgress ->
+                    ({ model | bellStatus = Expired }, ringTheBell model.enableBell)
+                _ ->
+                    (model, Cmd.none)
         PressCharacter keyChar ->
             let
                 cmd = if model.isShowForm then Cmd.none else Task.attempt (\_ -> NoOp) (Dom.focus "input-command-box")
@@ -262,8 +280,9 @@ update msg model =
                 , startTime = model.time
                 , todos = newTodos
                 , inputText = defaultInputText
+                , bellStatus = InProgress
             }
-            , saveTodos newTodos
+            , Cmd.batch [saveTodos newTodos, notifyIn RingBell (25*60*1000)]
             )
         Stop ->
             let
@@ -289,6 +308,10 @@ update msg model =
             }
             , Cmd.none
             )
+
+notifyIn : Msg -> Float -> Cmd Msg
+notifyIn msg time =
+  Process.sleep time |> Task.attempt (\_ -> msg)
 
 lastElem : List a -> Maybe a
 lastElem list =
@@ -395,7 +418,7 @@ toKey string =
             PressControl string
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.batch [ onKeySub, timerSub ]
 
 onKeySub : Sub Msg
@@ -487,17 +510,7 @@ commandBox model =
             )
         ]
 
-styleInputBox : List (Html.Attribute msg)
-styleInputBox =
-    [ HtmlAtr.style "font-size" "16px"
-    , HtmlAtr.style "letter-spacing" "0.8px"
-    , HtmlAtr.style "height" "45px"
-    , HtmlAtr.style "width" "800px"
-    , HtmlAtr.style "padding" "0px 10px"
-    , HtmlAtr.style "border" "1px solid #666"
-    , HtmlAtr.style "border-radius" "4px"
-    , HtmlAtr.style "box-shadow" "0 0 50px rgba(0, 0, 0, 0.25)"
-    ]
+
 -- END BLOCK:commandBox
 
 
