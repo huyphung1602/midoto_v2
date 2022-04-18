@@ -197,7 +197,7 @@ update msg model =
     case msg of
         RingBell ->
             let
-                bellInterval = model.bellTimer - ((timeInterval model.zone model.startTime model.time) * 1000) - 6000
+                bellInterval = model.bellTimer - ((timeInterval model.zone model.startTime model.time) * 1000) - 5000
             in
             case model.bellStatus of
                 InProgress ->
@@ -640,9 +640,8 @@ commandElements =
         , Html.text " to show the completed tasks."
         ]
     , Html.span []
-        [ Html.text "Turn off the auto-discardable in chrome via "
-        , Html.strong [] [ Html.text "chrome://discards" ]
-        , Html.text " to make sure the timer works correctly when the tab is inactive."
+        [ Html.strong [] [ Html.text "Note: " ]
+        , Html.text "To enable the bell alert, you need to allow the sound setting in your browser."
         ]
     ]
 
