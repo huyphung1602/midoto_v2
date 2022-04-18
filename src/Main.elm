@@ -132,6 +132,7 @@ type alias Model =
     , rightPanel : RightPanel
     , enableBell : Bool
     , bellStatus : BellStatus
+    , bellTimer : Float
     }
 
 defaultInputText : String
@@ -157,6 +158,7 @@ init flags =
       , rightPanel = CommandList
       , enableBell = True
       , bellStatus = Expired
+      , bellTimer = 25*60*1000 + 5000
       }
     , Cmd.none
     )
@@ -187,9 +189,12 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
         RingBell ->
+            let
+                bellInterval = model.bellTimer - ((timeInterval model.zone model.startTime model.time) * 1000) - 2000
+            in
             case model.bellStatus of
                 InProgress ->
-                    ({ model | bellStatus = Expired }, ringTheBell (model.enableBell && model.isWorking))
+                    ({ model | bellStatus = Expired }, ringTheBell (model.enableBell && model.isWorking && bellInterval <= 0))
                 _ ->
                     (model, Cmd.none)
         PressCharacter keyChar ->
@@ -282,7 +287,7 @@ update msg model =
                 , inputText = defaultInputText
                 , bellStatus = InProgress
             }
-            , Cmd.batch [saveTodos newTodos, notifyIn RingBell (25*60*1000)]
+            , Cmd.batch [saveTodos newTodos, notifyIn RingBell model.bellTimer]
             )
         Stop ->
             let
@@ -387,10 +392,14 @@ updateWorkedTime : Model -> List Todo
 updateWorkedTime model =
     List.map (\todo ->
         if todo.status == Active then
-            { todo | workedTime = todo.previousWorkedTime + (floatFromPosix model.zone model.time) - (floatFromPosix model.zone model.startTime) }
+            { todo | workedTime = todo.previousWorkedTime + (timeInterval model.zone model.startTime model.time) }
         else
             todo
     ) model.todos
+
+timeInterval : Time.Zone -> Time.Posix -> Time.Posix -> Float
+timeInterval zone startTime currentTime =
+    (floatFromPosix zone currentTime) - (floatFromPosix zone startTime)
 
 floatFromPosix : Time.Zone -> Time.Posix -> Float
 floatFromPosix zone time =
