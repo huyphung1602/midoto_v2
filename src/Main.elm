@@ -113,6 +113,11 @@ type RightPanel
     = CommandList
     | CompletedTodos
 
+type SoundToggle
+    = Toggle
+    | TrueToggle
+    | FalseToggle
+
 type alias Todo =
     { id : Int
     , name : String
@@ -168,6 +173,8 @@ init flags =
 type Msg
     = NoOp
     | RingBell
+    | ToggleBellSound SoundToggle
+    | SetBellTimer Float
     | PressCharacter Char
     | PressControl String
     | ChangeInput String
@@ -197,6 +204,17 @@ update msg model =
                     ({ model | bellStatus = Expired }, ringTheBell (model.enableBell && model.isWorking && bellInterval <= 0))
                 _ ->
                     (model, Cmd.none)
+        ToggleBellSound soundToggle ->
+            let
+                newEnableBell = if soundToggle == Toggle then (not model.enableBell)
+                    else if soundToggle == TrueToggle then
+                        True
+                    else
+                        False
+            in
+            ({ model | enableBell = newEnableBell }, Cmd.none)
+        SetBellTimer newBellTimer ->
+            ({ model | bellTimer = (newBellTimer + 5000) }, Cmd.none)
         PressCharacter keyChar ->
             let
                 cmd = if model.isShowForm then Cmd.none else Task.attempt (\_ -> NoOp) (Dom.focus "input-command-box")
@@ -450,7 +468,13 @@ view model =
                 [ HtmlAtr.style "height" "90%"
                 , HtmlAtr.style "padding" "10px 0 10px 20px"]
                 [ svgLogo ]
-            , Html.div styleOfLeftPanel <| (Html.h3 [HtmlAtr.style "margin-left" "20px"] [ Html.text "On Going Tasks" ])::(List.map viewTodo <| onGoingTodos model.todos)
+            , Html.div styleOfLeftPanel
+                (
+                    [ Html.h3 [ HtmlAtr.style "margin-left" "20px" ] [ Html.text "On Going Tasks" ]
+                    , Html.p [ HtmlAtr.style "margin-left" "20px", HtmlAtr.style "font-weight" "600" ] [ Html.text <| bellString model ]
+                    ]
+                    ++ (List.map viewTodo <| onGoingTodos model.todos)
+                )
             , Html.div styleOfRightPanel <| viewRightPanel model
             ]
         ]
@@ -535,6 +559,14 @@ viewCompletedTodos : List Todo -> List (Html Msg)
 viewCompletedTodos todos =
     (Html.h3 [HtmlAtr.style "margin-left" "20px"] [ Html.text "Completed Tasks" ])::(List.map viewTodo <| completedTodos todos)
 
+bellString : Model -> String
+bellString model =
+    let
+        enableBellString = if model.enableBell then "ON" else "OFF"
+        bellTimerString = String.fromInt (round (model.bellTimer/(60*1000))) ++ " min"
+    in
+        "Ring the bell after " ++ bellTimerString ++ ": " ++ enableBellString
+
 viewCommandList : List (Html Msg) -> List (Html Msg)
 viewCommandList cmdElems =
     (Html.h3 [HtmlAtr.style "margin-left" "20px"] [ Html.text "List of Commands" ])::(List.map viewCommand <| cmdElems)
@@ -592,12 +624,25 @@ commandElements =
         , Html.text " [task index] to delete a task."
         ]
     , Html.span []
+        [ Html.strong [] [ Html.text "/bell or /b" ]
+        , Html.text " 1 to turn on a bell sound. 0 to turn off."
+        ]
+    , Html.span []
+        [ Html.strong [] [ Html.text "/timer or /t" ]
+        , Html.text " to set the timer for ringing the bell."
+        ]
+    , Html.span []
         [ Html.strong [] [ Html.text "/0" ]
         , Html.text " to show the list of commands."
         ]
     , Html.span []
         [ Html.strong [] [ Html.text "/1" ]
         , Html.text " to show the completed tasks."
+        ]
+    , Html.span []
+        [ Html.text "Turn off the auto-discardable in chrome via "
+        , Html.strong [] [ Html.text "chrome://discards" ]
+        , Html.text " to make sure the timer works correctly when the tab is inactive."
         ]
     ]
 
@@ -723,6 +768,40 @@ parseEditTodo list todoTuples=
                 Nothing ->
                     NoOp
 
+getToggleValue : List String -> SoundToggle
+getToggleValue xs =
+    case xs of
+        [] ->
+            Toggle
+        [x] ->
+            case x of
+                "1" -> TrueToggle
+                "0" -> FalseToggle
+                _ -> Toggle
+        x::_ ->
+            case x of
+                "1" -> TrueToggle
+                "0" -> FalseToggle
+                _ -> Toggle
+
+maybeTimerFloat : Maybe Float -> Float
+maybeTimerFloat mbFloat =
+    case mbFloat of
+        Just f ->
+            f
+        Nothing ->
+            25*60*1000
+
+getTimerValue : List String -> Float
+getTimerValue list =
+    case list of
+        [] ->
+            25*60*1000
+        [x] ->
+            (maybeTimerFloat <| String.toFloat x) * 60 * 1000
+        x::_ ->
+            (maybeTimerFloat <| String.toFloat x) * 60 * 1000
+
 parseMsg : List String -> List Todo -> Msg
 parseMsg list todos =
     case list of
@@ -766,6 +845,14 @@ parseMsg list todos =
                     parseCommandUseIndex ActiveOn xs (onGoingTodos todos)
                 "/start" ->
                     parseCommandUseIndex Start xs (onGoingTodos todos)
+                "/bell" ->
+                    ToggleBellSound <| getToggleValue xs
+                "/b" ->
+                    ToggleBellSound <| getToggleValue xs
+                "/timer" ->
+                    SetBellTimer <| getTimerValue xs
+                "/t" ->
+                    SetBellTimer <| getTimerValue xs
                 _ ->
                     AddTodo <| String.join " " list
 
