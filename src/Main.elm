@@ -189,7 +189,7 @@ update msg model =
         RingBell ->
             case model.bellStatus of
                 InProgress ->
-                    ({ model | bellStatus = Expired }, ringTheBell model.enableBell)
+                    ({ model | bellStatus = Expired }, ringTheBell (model.enableBell && model.isWorking))
                 _ ->
                     (model, Cmd.none)
         PressCharacter keyChar ->
