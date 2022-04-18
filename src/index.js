@@ -6,7 +6,7 @@ const startingState = storedState ? JSON.parse(storedState) : null;
 const silentSound = new Howl({
   src: ['https://www.soundjay.com/nature/rain-02.mp3'],
   loop: true,
-  volume: 0.1,
+  volume: 0.01,
   html5: true,
 });
 
@@ -28,7 +28,7 @@ app.ports.ringTheBell.subscribe(function(isEnableBell) {
   if (isEnableBell) {
     const sound = new Howl({
       src: ['https://assets.mixkit.co/sfx/preview/mixkit-clock-bells-hour-signal-1069.mp3'],
-      volume: 0.5,
+      volume: 0.7,
       html5: true,
       onend: function () {
         console.log('Finished');
