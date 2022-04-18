@@ -197,7 +197,7 @@ update msg model =
     case msg of
         RingBell ->
             let
-                bellInterval = model.bellTimer - ((timeInterval model.zone model.startTime model.time) * 1000) - 2000
+                bellInterval = model.bellTimer - ((timeInterval model.zone model.startTime model.time) * 1000) - 6000
             in
             case model.bellStatus of
                 InProgress ->

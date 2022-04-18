@@ -3,10 +3,17 @@ import { Howl } from 'howler';
 
 const storedState = localStorage.getItem('midoto-save');
 const startingState = storedState ? JSON.parse(storedState) : null;
+const silentSound = new Howl({
+  src: ['https://www.soundjay.com/nature/rain-02.mp3'],
+  loop: true,
+  volume: 0.1,
+  html5: true,
+});
 
 var app = Elm.Main.init({
   node: document.getElementById('root'),
   flags: startingState,
+  silent: silentSound.play(),
 });
 
 app.ports.storeTodos.subscribe(function(todos) {
