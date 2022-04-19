@@ -1,5 +1,5 @@
 import { Elm } from './Main.elm'
-import { Howl } from 'howler';
+import { Howl, Howler } from 'howler';
 
 const storedState = localStorage.getItem('midoto-save');
 const startingState = storedState ? JSON.parse(storedState) : null;
@@ -13,7 +13,6 @@ const silentSound = new Howl({
 var app = Elm.Main.init({
   node: document.getElementById('root'),
   flags: startingState,
-  silent: silentSound.play(),
 });
 
 app.ports.storeTodos.subscribe(function(todos) {
@@ -21,6 +20,9 @@ app.ports.storeTodos.subscribe(function(todos) {
     const todosJson = JSON.stringify(todos);
     localStorage.setItem('midoto-save', todosJson);
     // console.log("Saved state: ", todosJson);
+
+    Howler.stop();
+    silentSound.play();
   }
 });
 

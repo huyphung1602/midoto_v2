@@ -639,10 +639,6 @@ commandElements =
         [ Html.strong [] [ Html.text "/1" ]
         , Html.text " to show the completed tasks."
         ]
-    , Html.span []
-        [ Html.strong [] [ Html.text "Note: " ]
-        , Html.text "To enable the bell alert, you need to allow the sound setting in your browser."
-        ]
     ]
 
 viewTodo : (Int, Todo) -> Html Msg
