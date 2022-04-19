@@ -138,6 +138,7 @@ type alias Model =
     , enableBell : Bool
     , bellStatus : BellStatus
     , bellTimer : Float
+    , lastedBellId : Float
     }
 
 defaultInputText : String
@@ -164,6 +165,7 @@ init flags =
       , enableBell = True
       , bellStatus = Expired
       , bellTimer = 25*60*1000 + 5000
+      , lastedBellId = 0
       }
     , Cmd.none
     )
@@ -172,7 +174,7 @@ init flags =
 -- START:update
 type Msg
     = NoOp
-    | RingBell
+    | RingBell Float
     | ToggleBellSound SoundToggle
     | SetBellTimer Float
     | PressCharacter Char
@@ -195,13 +197,16 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
-        RingBell ->
+        RingBell bellId ->
             let
-                bellInterval = model.bellTimer - ((timeInterval model.zone model.startTime model.time) * 1000) - 5000
+                shouldRingBell : Bool
+                shouldRingBell = model.enableBell && model.isWorking && (bellId == model.lastedBellId)
+
+                newBellStatus = if shouldRingBell then Expired else InProgress
             in
             case model.bellStatus of
                 InProgress ->
-                    ({ model | bellStatus = Expired }, ringTheBell (model.enableBell && model.isWorking && bellInterval <= 0))
+                    ({ model | bellStatus = newBellStatus }, ringTheBell shouldRingBell)
                 _ ->
                     (model, Cmd.none)
         ToggleBellSound soundToggle ->
@@ -294,9 +299,10 @@ update msg model =
             }
             , saveTodos newTodos
             )
-        Start index->
+        Start index ->
             let
                 newTodos = updatePreviousWorkedTime model.todos |> startTodo index
+                newLastedBellId = floatFromPosix model.zone model.time
             in
             ({ model
                 | isWorking = True
@@ -304,20 +310,24 @@ update msg model =
                 , todos = newTodos
                 , inputText = defaultInputText
                 , bellStatus = InProgress
+                , lastedBellId =  newLastedBellId
             }
-            , Cmd.batch [saveTodos newTodos, notifyIn RingBell model.bellTimer]
+            , Cmd.batch [saveTodos newTodos, notifyIn (RingBell newLastedBellId) model.bellTimer]
             )
         Stop ->
             let
                 newTodos = updatePreviousWorkedTime model.todos
             in
-            ({ model
-                | isWorking = False
-                , inputText = defaultInputText
-                , todos = newTodos
-            }
-            , saveTodos newTodos
-            )
+            if model.isWorking then
+                ({ model
+                    | isWorking = False
+                    , inputText = defaultInputText
+                    , todos = newTodos
+                }
+                , saveTodos newTodos
+                )
+            else
+                (model, Cmd.none)
         Tick newTime ->
             ({ model
                 | time = newTime
@@ -785,7 +795,7 @@ maybeTimerFloat mbFloat =
         Just f ->
             f
         Nothing ->
-            25*60*1000
+            25
 
 getTimerValue : List String -> Float
 getTimerValue list =
