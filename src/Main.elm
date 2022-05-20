@@ -40,6 +40,10 @@ saveTodos todos =
         |> JsonEncode.encode 0
         |> Ports.storeTodos
 
+toggleSound : Bool -> Cmd Msg
+toggleSound enable =
+    Ports.toggleSound enable
+
 ringTheBell : Bool -> Cmd Msg
 ringTheBell isEnableBell =
     Ports.ringTheBell isEnableBell
@@ -312,7 +316,7 @@ update msg model =
                 , bellStatus = InProgress
                 , lastedBellId =  newLastedBellId
             }
-            , Cmd.batch [saveTodos newTodos, notifyIn (RingBell newLastedBellId) model.bellTimer]
+            , Cmd.batch [saveTodos newTodos, toggleSound True, notifyIn (RingBell newLastedBellId) model.bellTimer]
             )
         Stop ->
             let
@@ -324,7 +328,7 @@ update msg model =
                     , inputText = defaultInputText
                     , todos = newTodos
                 }
-                , saveTodos newTodos
+                , Cmd.batch [saveTodos newTodos, toggleSound False]
                 )
             else
                 (model, Cmd.none)

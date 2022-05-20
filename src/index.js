@@ -20,11 +20,16 @@ app.ports.storeTodos.subscribe(function(todos) {
     const todosJson = JSON.stringify(todos);
     localStorage.setItem('midoto-save', todosJson);
     // console.log("Saved state: ", todosJson);
-
-    Howler.stop();
-    silentSound.play();
   }
 });
+
+app.ports.toggleSound.subscribe(function(enable) {
+  if (enable) {
+    silentSound.play();
+  } else {
+    Howler.stop();
+  }
+})
 
 app.ports.ringTheBell.subscribe(function(isEnableBell) {
   if (isEnableBell) {
